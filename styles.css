@@ -282,3 +282,9 @@ body.project-dialog-open{overflow:hidden}
 .gallery-piece-image .media-zoom img{object-fit:cover}
 
 .photography-grid .photo-tile[hidden]{display:none!important}
+.feature-grid .project-card--video.project-card--wide .art{aspect-ratio:5240 / 2000!important}
+.feature-grid .project-card--wide .art-video{object-fit:cover;background:transparent}
+.featured-project-title{position:absolute;z-index:2;top:22px;left:24px;right:24px;color:#fff;font:clamp(22px,3.4vw,38px)/1.1 var(--serif);letter-spacing:-.025em;text-shadow:0 2px 18px rgba(0,0,0,.8);pointer-events:none}
+.feature-grid .card-caption{padding-top:18px}
+.feature-grid .card-caption small{font:500 16px/1.65 var(--sans);letter-spacing:0;color:#c5c1b8}
+@media(max-width:760px){.feature-grid .project-card--video.project-card--wide .art{aspect-ratio:5240 / 2000!important}.featured-project-title{top:14px;left:15px;right:15px;font-size:clamp(19px,5vw,28px)}.feature-grid .card-caption small{font-size:15px}}
