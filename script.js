@@ -434,8 +434,9 @@ async function getHomePhotoAspect(tile) {
 }
 async function shuffleHomePhotos() {
   if (homePhotoTiles.length <= 8) return;
-  const visiblePhotoCount = Math.min(9 + Math.floor(Math.random() * 3), homePhotoTiles.length);
   const columns = homePhotoColumnCount();
+  // Keep the grid full with complete rows at every breakpoint.
+  const visiblePhotoCount = Math.min(Math.ceil(12 / columns) * columns, homePhotoTiles.length);
   let shuffled;
   let setKey;
   do {

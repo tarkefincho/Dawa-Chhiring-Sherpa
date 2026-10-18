@@ -318,3 +318,17 @@ body.project-dialog-open{overflow:hidden}
 .photography-section .photo-tile .media-zoom img{display:block;width:100%;height:auto;max-height:none;aspect-ratio:auto;object-fit:contain;background:transparent}
 @media(max-width:900px){.photography-section .photography-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.photography-section .photography-grid{grid-template-columns:minmax(0,1fr);gap:16px}}
+
+/* Keep the closing contact area compact and clearly grouped. */
+footer h2{margin:0 0 38px}
+.footer-contact-links{display:flex;align-items:center;flex-wrap:wrap;gap:36px}
+.footer-contact-links .social-links{margin-top:0;gap:24px}
+.footer-bottom{margin-top:86px;display:flex;align-items:center;gap:24px}
+.footer-bottom>a:last-child{margin-left:auto}
+@media(max-width:760px){
+  .footer-contact-links{align-items:flex-start;flex-direction:column;gap:24px}
+  .footer-contact-links .social-links{gap:18px}
+  .footer-bottom{display:grid;grid-template-columns:1fr auto;gap:18px;margin-top:64px}
+  .footer-bottom span{order:initial;width:auto}
+  .footer-bottom>a:last-child{margin-left:0}
+}
