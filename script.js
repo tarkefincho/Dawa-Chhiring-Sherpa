@@ -195,7 +195,7 @@ function openProjectDialog(projectId, title, kind, opener = null) {
   dialog.scrollTop = 0;
   requestAnimationFrame(() => { dialog.scrollTop = 0; });
 }
-document.querySelectorAll('.project-open[data-project-id]').forEach(button => button.addEventListener('click', () => {
+document.querySelectorAll('.project-open[data-project-id], .featured-project-title[data-project-id]').forEach(button => button.addEventListener('click', () => {
   openProjectDialog(button.dataset.projectId, button.dataset.title, button.dataset.kind, button);
 }));
 const linkedProjectId = location.hash.match(/^#project-(arctic|echoes|shrine|mountain)$/)?.[1];
@@ -411,8 +411,31 @@ const lightboxImage = document.querySelector('#lightbox-image');
 const homePhotoGrid = document.querySelector('.photography-grid');
 const homePhotoTiles = homePhotoGrid ? [...homePhotoGrid.querySelectorAll('.photo-tile')] : [];
 let lastHomePhotoSet = '';
-function shuffleHomePhotos() {
-  if (homePhotoTiles.length <= 10) return;
+function homePhotoColumnCount() {
+  return window.matchMedia('(max-width: 520px)').matches ? 1
+    : window.matchMedia('(max-width: 900px)').matches ? 2 : 3;
+}
+function alignHomePhotoFinalRow(visibleTiles) {
+  if (!homePhotoGrid) return;
+  const columns = homePhotoColumnCount();
+  const visibleSet = new Set(visibleTiles);
+  homePhotoTiles.forEach(tile => tile.classList.toggle('photo-grid-final-row', visibleSet.has(tile) && visibleTiles.indexOf(tile) >= visibleTiles.length - columns));
+}
+async function getHomePhotoAspect(tile) {
+  const image = tile.querySelector('img');
+  if (image.naturalWidth && image.naturalHeight) return image.naturalWidth / image.naturalHeight;
+  const probe = new Image();
+  probe.src = image.currentSrc || image.src;
+  try {
+    if (probe.decode) await probe.decode();
+    else await new Promise((resolve, reject) => { probe.onload = resolve; probe.onerror = reject; });
+  } catch {}
+  return probe.naturalWidth && probe.naturalHeight ? probe.naturalWidth / probe.naturalHeight : 1;
+}
+async function shuffleHomePhotos() {
+  if (homePhotoTiles.length <= 8) return;
+  const visiblePhotoCount = Math.min(9 + Math.floor(Math.random() * 3), homePhotoTiles.length);
+  const columns = homePhotoColumnCount();
   let shuffled;
   let setKey;
   do {
@@ -421,22 +444,37 @@ function shuffleHomePhotos() {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    setKey = shuffled.slice(0, 10).map(tile => tile.querySelector('img').src).sort().join('|');
+    setKey = `${visiblePhotoCount}|${shuffled.slice(0, visiblePhotoCount).map(tile => tile.querySelector('img').src).sort().join('|')}`;
   } while (setKey === lastHomePhotoSet);
   lastHomePhotoSet = setKey;
-  shuffled.forEach((tile, index) => {
+  const selected = shuffled.slice(0, visiblePhotoCount);
+  const aspectEntries = await Promise.all(selected.map(async tile => ({ tile, aspect: await getHomePhotoAspect(tile) })));
+  aspectEntries.sort((a, b) => a.aspect - b.aspect);
+  const ordered = [];
+  for (let index = 0; index < aspectEntries.length; index += columns) {
+    const row = aspectEntries.slice(index, index + columns);
+    for (let i = row.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [row[i], row[j]] = [row[j], row[i]];
+    }
+    ordered.push(...row.map(entry => entry.tile));
+  }
+  homePhotoTiles.forEach(tile => { tile.hidden = true; });
+  ordered.forEach((tile, index) => {
     homePhotoGrid.append(tile);
-    tile.hidden = index >= 10;
+    tile.hidden = index >= visiblePhotoCount;
   });
+  const finalRowSize = visiblePhotoCount % columns || columns;
+  alignHomePhotoFinalRow(ordered.slice(visiblePhotoCount - finalRowSize));
 }
-shuffleHomePhotos();
+if (homePhotoGrid) window.addEventListener('resize', () => alignHomePhotoFinalRow([...homePhotoGrid.querySelectorAll('.photo-tile:not([hidden])')]));
 function scheduleHomePhotoShuffle() {
-  window.setTimeout(() => {
-    if (!lightbox?.open) shuffleHomePhotos();
+  window.setTimeout(async () => {
+    if (!lightbox?.open) await shuffleHomePhotos();
     scheduleHomePhotoShuffle();
   }, 12000);
 }
-scheduleHomePhotoShuffle();
+shuffleHomePhotos().finally(scheduleHomePhotoShuffle);
 let activeGalleryButtons = [];
 let activeGalleryIndex = 0;
 function showGalleryImage(index) {
