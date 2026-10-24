@@ -435,25 +435,32 @@ async function getHomePhotoAspect(tile) {
 async function shuffleHomePhotos() {
   if (homePhotoTiles.length <= 8) return;
   const columns = homePhotoColumnCount();
-  // Keep the grid full with complete rows at every breakpoint.
-  const visiblePhotoCount = Math.min(Math.ceil(12 / columns) * columns, homePhotoTiles.length);
-  let shuffled;
-  let setKey;
-  do {
-    shuffled = [...homePhotoTiles];
-    for (let i = shuffled.length - 1; i > 0; i--) {
+  const visiblePhotoCount = Math.min(9, homePhotoTiles.length);
+  const aspectEntries = await Promise.all(homePhotoTiles.map(async tile => ({ tile, aspect: await getHomePhotoAspect(tile) })));
+  const portraits = aspectEntries.filter(entry => entry.aspect < 1);
+  const landscapes = aspectEntries.filter(entry => entry.aspect >= 1);
+  const pickRandom = (entries, count) => {
+    const pool = [...entries];
+    for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    setKey = `${visiblePhotoCount}|${shuffled.slice(0, visiblePhotoCount).map(tile => tile.querySelector('img').src).sort().join('|')}`;
-  } while (setKey === lastHomePhotoSet);
+    return pool.slice(0, count);
+  };
+  let selected = [...pickRandom(portraits, 3), ...pickRandom(landscapes, 6)];
+  if (selected.length < visiblePhotoCount) {
+    const selectedTiles = new Set(selected.map(entry => entry.tile));
+    selected.push(...pickRandom(aspectEntries.filter(entry => !selectedTiles.has(entry.tile)), visiblePhotoCount - selected.length));
+  }
+  let setKey = `${visiblePhotoCount}|${selected.map(entry => entry.tile.querySelector('img').src).sort().join('|')}`;
+  if (setKey === lastHomePhotoSet) {
+    selected = [...pickRandom(portraits, 3), ...pickRandom(landscapes, 6)];
+    setKey = `${visiblePhotoCount}|${selected.map(entry => entry.tile.querySelector('img').src).sort().join('|')}`;
+  }
   lastHomePhotoSet = setKey;
-  const selected = shuffled.slice(0, visiblePhotoCount);
-  const aspectEntries = await Promise.all(selected.map(async tile => ({ tile, aspect: await getHomePhotoAspect(tile) })));
-  aspectEntries.sort((a, b) => a.aspect - b.aspect);
   const ordered = [];
-  for (let index = 0; index < aspectEntries.length; index += columns) {
-    const row = aspectEntries.slice(index, index + columns);
+  for (let index = 0; index < selected.length; index += columns) {
+    const row = selected.slice(index, index + columns);
     for (let i = row.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [row[i], row[j]] = [row[j], row[i]];
